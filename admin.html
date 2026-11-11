@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Reviewer dashboard | AfCFTA &amp; Future of Work Summit 2026</title>
+<link rel="icon" href="assets/logo-geti.jpg">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--navy:#0e1b3a;--ink:#1c2740;--muted:#5b6780;--line:#dfe5f0;--bg:#f4f6fb;--green:#1f9d4d;--green-dark:#14773a;--green-soft:#e6f5ec;--blue:#2f5be8;--blue-soft:#e9eefd;--red:#c0392b}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+.strip{height:6px;background:linear-gradient(90deg,var(--green) 0 60%,var(--blue) 60% 100%)}
+header{background:#fff;border-bottom:1px solid var(--line);padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+header img{height:40px;width:40px;border-radius:50%;object-fit:contain}
+header h1{font-size:17px;margin:0;color:var(--navy);flex:1;min-width:200px}
+.wrap{max-width:1180px;margin:0 auto;padding:16px}
+.card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px}
+.login{max-width:380px;margin:40px auto}
+label{display:block;font-weight:600;margin:10px 0 4px}
+input,select,textarea{width:100%;font:inherit;border:1.5px solid #c8d1e3;border-radius:9px;padding:9px 11px;background:#fff;color:var(--ink)}
+textarea{min-height:90px}
+.btn{font:inherit;font-weight:700;border-radius:9px;padding:9px 16px;border:2px solid transparent;cursor:pointer;background:var(--green);color:#fff}
+.btn.ghost{background:#fff;border-color:#c8d1e3;color:var(--navy)}
+.btn[disabled]{opacity:.6}
+.err{background:#fdecea;border:1px solid #f1b5ae;color:#7d2118;border-radius:9px;padding:10px 12px;margin:10px 0}
+.ok{background:var(--green-soft);border:1px solid #b9e2c7;border-radius:9px;padding:8px 12px;margin:8px 0}
+.stats{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.stat{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 14px;min-width:120px;cursor:pointer;text-align:left;font:inherit;color:inherit}
+.stat.on{border-color:var(--blue);background:var(--blue-soft)}
+.stat b{display:block;font-size:22px;color:var(--navy)}
+.stat small{color:var(--muted)}
+.bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.bar>*{flex:1;min-width:150px}
+.bar .btn{flex:none}
+.tablewrap{overflow-x:auto;background:#fff;border:1px solid var(--line);border-radius:12px}
+table{border-collapse:collapse;width:100%;min-width:760px}
+th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:#fafbfe}
+tr.row{cursor:pointer}tr.row:hover{background:#f7f9ff}
+.pill{display:inline-block;border-radius:99px;padding:1px 10px;font-size:12px;font-weight:700;background:#eef1f7;color:var(--navy)}
+.pill.new{background:var(--blue-soft);color:var(--blue)}
+.pill.accepted{background:var(--green-soft);color:var(--green-dark)}
+.pill.declined{background:#fdecea;color:var(--red)}
+.pill.shortlisted{background:#fff4d9;color:#8a5a00}
+.dup{background:#fff4d9;color:#8a5a00;font-size:11px;border-radius:6px;padding:0 6px;margin-left:6px;font-weight:700}
+.detail{position:fixed;inset:0;background:rgba(14,27,58,.45);display:flex;justify-content:flex-end;z-index:10}
+.panel{background:#fff;width:min(560px,100%);height:100%;overflow:auto;padding:20px}
+dl{margin:0}dt{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-top:12px}
+dd{margin:2px 0 0;white-space:pre-wrap;overflow-wrap:anywhere}
+[hidden]{display:none!important}
+.muted{color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="strip"></div>
+<header>
+  <img src="assets/logo-geti.jpg" alt="">
+  <h1>Summit applications: reviewer dashboard</h1>
+  <span id="who" class="muted"></span>
+  <button class="btn ghost" id="out" hidden>Sign out</button>
+</header>
+<div class="wrap" id="app"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js"></script>
+<script>
+const CFG={
+  supabaseUrl:"https://ruqgwctsfjzruddcsekk.supabase.co",
+  supabaseKey:"sb_publishable_1h0Th4UigMxt8FQsU3qzxw_srbR4zG5"
+};
+const CATS={sponsor:"Sponsor",exhibitor:"Exhibitor",founder:"Women & youth founder",speaker:"Speaker",delegate:"Delegate"};
+const STATUSES={new:"New",in_review:"In review",shortlisted:"Shortlisted",waitlist:"Waitlist",accepted:"Accepted",declined:"Declined"};
+const PKG={continental:"AfCFTA Continental Partner (N$250,000)",green_horizon:"Green Horizon Partner (N$150,000)",smart_futures:"Smart Futures Partner (N$90,000)",inclusive_growth:"Inclusive Growth Partner (N$50,000)",ubuntu:"Ubuntu Champion (N$25,000)",exhibitor:"Trade Corridor Exhibitor (N$12,500)"};
+const $=(s,r=document)=>r.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const pretty=k=>k.replace(/_/g," ").replace(/^./,c=>c.toUpperCase());
+const sb=window.supabase.createClient(CFG.supabaseUrl,CFG.supabaseKey,{auth:{persistSession:true,autoRefreshToken:true}});
+let ROWS=[],F={cat:"",status:"",q:""},user=null;
+
+async function start(){
+  const {data}=await sb.auth.getSession();
+  if(data.session){ user=data.session.user; await gate(); } else loginView();
+}
+function loginView(msg){
+  $("#who").textContent=""; $("#out").hidden=true;
+  $("#app").innerHTML=`<div class="card login"><h2 style="margin:0 0 4px">Reviewer sign in</h2><p class="muted">For Summit organising team members only.</p>${msg?`<div class="err" role="alert">${esc(msg)}</div>`:""}
+  <form id="lf"><label for="em">Email</label><input id="em" type="email" autocomplete="username" required><label for="pw">Password</label><input id="pw" type="password" autocomplete="current-password" required><p><button class="btn" style="width:100%;margin-top:14px">Sign in</button></p></form></div>`;
+  $("#lf").onsubmit=async e=>{ e.preventDefault(); const b=e.target.querySelector("button"); b.disabled=true;
+    const {data,error}=await sb.auth.signInWithPassword({email:$("#em").value.trim(),password:$("#pw").value});
+    if(error){ loginView("Sign in failed. Check your email and password."); return; }
+    user=data.user; await gate(); };
+}
+async function gate(){
+  const {data,error}=await sb.rpc("is_reviewer");
+  if(error||data!==true){ await sb.auth.signOut(); loginView("This account is not on the reviewer list. Ask the administrator to add your email."); return; }
+  $("#who").textContent=user.email; $("#out").hidden=false; $("#out").onclick=async()=>{await sb.auth.signOut();loginView();};
+  await load();
+}
+async function load(){
+  $("#app").innerHTML='<p class="muted">Loading applications&hellip;</p>';
+  const {data,error}=await sb.from("applications").select("*").order("created_at",{ascending:false}).limit(2000);
+  if(error){ $("#app").innerHTML=`<div class="err">Could not load applications: ${esc(error.message)}</div>`; return; }
+  ROWS=data; list();
+}
+const dupKey=r=>r.email.toLowerCase()+"|"+r.category;
+function list(){
+  const dups={}; ROWS.forEach(r=>dups[dupKey(r)]=(dups[dupKey(r)]||0)+1);
+  const cnt=c=>ROWS.filter(r=>!c||r.category===c);
+  const stats=[["","All"],...Object.entries(CATS)].map(([k,l])=>`<button class="stat ${F.cat===k?"on":""}" data-cat="${k}"><b>${cnt(k).length}</b><small>${esc(l)}${cnt(k).filter(r=>r.status==="new").length?` &middot; ${cnt(k).filter(r=>r.status==="new").length} new`:""}</small></button>`).join("");
+  const rows=ROWS.filter(r=>(!F.cat||r.category===F.cat)&&(!F.status||r.status===F.status)&&(!F.q||[r.ref,r.full_name,r.email,r.organisation,JSON.stringify(r.data)].join(" ").toLowerCase().includes(F.q.toLowerCase())));
+  $("#app").innerHTML=`<div class="stats">${stats}</div>
+  <div class="bar"><input id="q" placeholder="Search name, email, organisation, reference&hellip;" value="${esc(F.q)}" aria-label="Search"><select id="st" aria-label="Status"><option value="">All statuses</option>${Object.entries(STATUSES).map(([k,l])=>`<option value="${k}" ${F.status===k?"selected":""}>${l}</option>`).join("")}</select><button class="btn ghost" id="csv">Export CSV</button><button class="btn ghost" id="rf">Refresh</button></div>
+  <p class="muted">${rows.length} of ${ROWS.length} applications</p>
+  <div class="tablewrap"><table><thead><tr><th>Reference</th><th>Received</th><th>Applicant</th><th>Category</th><th>Package</th><th>Status</th></tr></thead><tbody>${rows.map(r=>`<tr class="row" data-id="${r.id}" tabindex="0"><td><b>${esc(r.ref)}</b></td><td>${new Date(r.created_at).toLocaleDateString("en-GB",{day:"2-digit",month:"short"})}</td><td>${esc(r.full_name)}${dups[dupKey(r)]>1?'<span class="dup">duplicate?</span>':""}<br><span class="muted">${esc(r.organisation||r.email)}</span></td><td>${esc(CATS[r.category]||r.category)}</td><td>${esc(r.package_code?(PKG[r.package_code]||r.package_code):"")}</td><td><span class="pill ${r.status}">${esc(STATUSES[r.status]||r.status)}</span></td></tr>`).join("")||'<tr><td colspan="6" class="muted">No applications match.</td></tr>'}</tbody></table></div>`;
+  document.querySelectorAll("[data-cat]").forEach(b=>b.onclick=()=>{F.cat=b.dataset.cat;list();});
+  $("#q").oninput=e=>{F.q=e.target.value; const pos=e.target.selectionStart; list(); const i=$("#q"); i.focus(); i.setSelectionRange(pos,pos);};
+  $("#st").onchange=e=>{F.status=e.target.value;list();};
+  $("#rf").onclick=load; $("#csv").onclick=()=>exportCSV(rows);
+  document.querySelectorAll("tr.row").forEach(tr=>{tr.onclick=()=>detail(tr.dataset.id); tr.onkeydown=e=>{if(e.key==="Enter")detail(tr.dataset.id);};});
+}
+async function detail(id){
+  const r=ROWS.find(x=>x.id===id); if(!r) return;
+  const d=document.createElement("div"); d.className="detail"; d.setAttribute("role","dialog"); d.setAttribute("aria-modal","true");
+  const files=(r.files||[]).map((f,i)=>`<li>${esc(pretty(f.field||"file"))}: <a href="#" data-f="${i}">${esc(f.name)}</a> <span class="muted">(${Math.round((f.size||0)/1024)} KB)</span></li>`).join("");
+  d.innerHTML=`<div class="panel"><div style="display:flex;justify-content:space-between;gap:8px"><div><h2 style="margin:0">${esc(r.full_name)}</h2><div class="muted">${esc(r.ref)} &middot; ${esc(CATS[r.category]||r.category)}</div></div><button class="btn ghost" id="x">Close</button></div>
+  <dl><dt>Email</dt><dd><a href="mailto:${esc(r.email)}">${esc(r.email)}</a></dd><dt>Phone</dt><dd>${esc(r.phone||"")}</dd><dt>Organisation</dt><dd>${esc(r.organisation||"")}</dd>${r.package_code?`<dt>Package</dt><dd>${esc(PKG[r.package_code]||r.package_code)}</dd>`:""}
+  ${Object.entries(r.data||{}).map(([k,v])=>`<dt>${esc(pretty(k))}</dt><dd>${esc(Array.isArray(v)?v.join(", "):v)}</dd>`).join("")}
+  <dt>Files</dt><dd>${files?`<ul style="margin:0;padding-left:18px">${files}</ul>`:"None"}</dd>
+  <dt>Marketing emails</dt><dd>${r.marketing_consent?"Yes":"No"}</dd><dt>Received</dt><dd>${new Date(r.created_at).toLocaleString("en-GB")}</dd></dl><hr style="border:0;border-top:1px solid var(--line);margin:16px 0">
+  <label for="s">Status</label><select id="s">${Object.entries(STATUSES).map(([k,l])=>`<option value="${k}" ${r.status===k?"selected":""}>${l}</option>`).join("")}</select>
+  <label for="n">Internal notes (never shown to applicants)</label><textarea id="n">${esc(r.notes||"")}</textarea>
+  <p><button class="btn" id="sv">Save</button> <span id="msg" role="status"></span></p>${r.package_code&&r.status!=="accepted"?'<p class="muted">Marking a package application as Accepted reduces the places shown as available on the public form.</p>':""}</div>`;
+  document.body.appendChild(d);
+  const close=()=>d.remove(); $("#x",d).onclick=close; d.onclick=e=>{if(e.target===d)close();};
+  d.onkeydown=e=>{if(e.key==="Escape")close();}; $("#x",d).focus();
+  d.querySelectorAll("[data-f]").forEach(a=>a.onclick=async e=>{e.preventDefault(); const f=r.files[a.dataset.f];
+    const {data,error}=await sb.storage.from("uploads").createSignedUrl(f.path,120);
+    if(error){ $("#msg",d).innerHTML='<span style="color:var(--red)">Could not open file.</span>'; return; } window.open(data.signedUrl,"_blank","noopener"); });
+  $("#sv",d).onclick=async()=>{ const b=$("#sv",d); b.disabled=true;
+    const upd={status:$("#s",d).value,notes:$("#n",d).value,reviewed_by:user.email,updated_at:new Date().toISOString()};
+    const {error}=await sb.from("applications").update(upd).eq("id",r.id);
+    b.disabled=false;
+    if(error){ $("#msg",d).innerHTML='<span style="color:var(--red)">Not saved: '+esc(error.message)+'</span>'; return; }
+    Object.assign(r,upd); $("#msg",d).textContent="Saved."; list(); };
+}
+function exportCSV(rows){
+  const keys=[...new Set(rows.flatMap(r=>Object.keys(r.data||{})))];
+  const head=["reference","received","category","status","full_name","email","phone","organisation","package",...keys,"files","marketing_consent","notes"];
+  const cell=v=>{ let s=Array.isArray(v)?v.join("; "):String(v??""); if(/^[=+\-@\t\r]/.test(s)) s="'"+s; return '"'+s.replace(/"/g,'""')+'"'; };
+  const lines=[head.map(cell).join(",")];
+  rows.forEach(r=>lines.push([r.ref,r.created_at,r.category,r.status,r.full_name,r.email,r.phone,r.organisation,r.package_code,...keys.map(k=>(r.data||{})[k]),(r.files||[]).map(f=>f.name).join("; "),r.marketing_consent?"yes":"no",r.notes].map(cell).join(",")));
+  const blob=new Blob(["﻿"+lines.join("\r\n")],{type:"text/csv;charset=utf-8"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="summit-applications-"+new Date().toISOString().slice(0,10)+".csv"; document.body.appendChild(a); a.click(); a.remove();
+}
+start();
+</script>
+</body>
+</html>
